@@ -36,7 +36,7 @@ import {
   welfare,
 } from "./SfacgInterface.ts";
 
-import { getNowFormatDate } from "./SfacgTool.ts";
+import { decrypt, getNowFormatDate } from "./SfacgTool.ts";
 
 class SfacgAPI extends SfacgBaseHttp {
   /**
@@ -50,22 +50,17 @@ class SfacgAPI extends SfacgBaseHttp {
       userName: userName,
       passWord: passWord,
     });
-    // 初始化一个数组来收集 Cookie
     let cookies: any[] = [];
-    // 使用 forEach() 方法来迭代所有的 Set-Cookie 头
     res.headers.forEach((value: string, key: string) => {
       if (key.toLowerCase() === "set-cookie") {
-        // 只取出 Cookie 的名字和值
         cookies.push(value.split(";")[0]);
       }
     });
-    // 将数组转换为字符串，并以分号和空格分隔
     const cookie = cookies.join("; ");
-    // 这里的 SetCookie 方法应该是您自定义的方法，用于设置内部的 Cookie 字符串
     this.SetCookie(cookie);
     return cookie;
   }
-  /**模拟设备上报
+  /** 模拟设备上报
    * 签到时，新号如果不加就会提示：您的账号存在安全风险
    * @param accountId 账户Id, 通过userInfo获取
    * @returns 设备上报状态
@@ -78,9 +73,9 @@ class SfacgAPI extends SfacgBaseHttp {
         package: "com.sfacg",
         abi: "arm64-v8a",
         deviceId: this.DEVICE_TOKEN.toLowerCase(),
-        version: "4.8.22",
+        version: "5.0.36",
         deviceToken: "7b2a42976f97d470",
-      }
+      },
     );
     return res.status.httpCode == 200;
   }
@@ -168,8 +163,7 @@ class SfacgAPI extends SfacgBaseHttp {
     const res = await this.get<contentInfos>(`/Chaps/${chapId}`, {
       expand: "content",
     });
-
-    return res.expand.content;
+    return decrypt(res.expand.content);
   }
 
   /**
@@ -192,7 +186,7 @@ class SfacgAPI extends SfacgBaseHttp {
   async searchInfos(
     novelName: string,
     page: number = 0,
-    size: number = 40
+    size: number = 40,
   ): Promise<searchInfos_novel[]> {
     const res = await this.get<searchInfos>("/search/novels/result/new", {
       page: page,
@@ -243,17 +237,22 @@ class SfacgAPI extends SfacgBaseHttp {
    * @param page 页数
    * @returns 小说分类主页
    */
-  async novels(page: number): Promise<novelInfo[]> {
+  async novels(
+    page: number,
+    isfree: "both" | "is" | "not" = "both",
+    isfinish: "both" | "is" | "not" = "both",
+  ): Promise<novelInfo[]> {
     return await this.get<novelInfo[]>(`/novels/0/sysTags/novels`, {
       page: page,
       updatedays: "-1",
       size: "20",
-      isfree: "both",
+      isfree: isfree,
       charcountbegin: "0",
       systagids: "",
-      sort: "viewtimes",
-      isfinish: "both",
+      sort: "bookmark",
+      isfinish: isfinish,
       charcountend: "0",
+      expand: "sysTags,totalNeedFireMoney",
     });
   }
 
@@ -305,7 +304,7 @@ class SfacgAPI extends SfacgBaseHttp {
       `/user/tasks/${id}/advertisement?aid=43&deviceToken=${this.DEVICE_TOKEN}`,
       {
         num: "1",
-      }
+      },
     );
     await this.taskBonus(id);
     return res.status.httpCode == 200;
@@ -372,7 +371,7 @@ class SfacgAPI extends SfacgBaseHttp {
       `/user/tasks?taskId=4&userId=${accountID}`,
       {
         env: 0,
-      }
+      },
     );
     return res.status.httpCode == 200;
   }
@@ -419,7 +418,7 @@ class SfacgAPI extends SfacgBaseHttp {
   async welfare(recordId: number = 26): Promise<boolean> {
     const res = await this.post<welfare>(
       `/user/welfare/storeitemrecords/${recordId}`,
-      {}
+      {},
     );
     return res.status.httpCode == 200;
   }
@@ -472,7 +471,7 @@ class SfacgAPI extends SfacgBaseHttp {
     passWord: string,
     nickName: string,
     phone: string,
-    smsAuthCode: number
+    smsAuthCode: number,
   ): Promise<number> {
     let res = await this.post<regist>("/user", {
       passWord: passWord,

@@ -28,7 +28,7 @@ export class SfacgDownloader {
     devicetoken: any,
     novelId: number,
     publisher: string = "Op要喝Op果奶",
-    Sfcookie?: string
+    Sfcookie?: string,
   ) {
     this.init = {
       devicetoken,
@@ -156,7 +156,7 @@ export class cf_SfacgDownloader extends SfacgDownloader {
             init: this.init,
             data: list.slice(i, i + limit),
           }),
-        })
+        }),
       );
     }
     const r = await Promise.all(p);

@@ -4,14 +4,18 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { SfacgDownloader } from "../_shared/Sfacg/SfacgDownload.ts";
-// Setup type definitions for built-in Supabase Runtime APIs
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey",
+};
 
 const CACHE_CONTROL = "public, no-cache, must-revalidate";
 Deno.serve(async (req) => {
-  const rawOrigin = req.headers.get("Origin");
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   const Header = new Headers();
-  Header.set("Access-Control-Allow-Origin", rawOrigin!);
   Header.set("Cache-Control", CACHE_CONTROL);
   Header.append("Vary", "Accept-Encoding");
   Header.append("Vary", "Origin");
@@ -23,13 +27,15 @@ Deno.serve(async (req) => {
   Header.set("Content-Type", "text/plain");
   Header.set(
     "Content-Disposition",
-    `attachment; filename="${encodeURIComponent(novelName!)
-      .replace(/['()]/g, escape)
-      .replace(/\*/g, "%2A")}.txt"`
+    `attachment; filename="${
+      encodeURIComponent(novelName!)
+        .replace(/['()]/g, escape)
+        .replace(/\*/g, "%2A")
+    }.txt"`,
   );
   Header.set("Access-Control-Expose-Headers", "Content-Disposition");
   return new Response(data, {
-    headers: Header,
+    headers: { ...corsHeaders, ...Header },
   });
   // const rawOrigin = req.headers.get("Origin");
   // const Header = new Headers();
